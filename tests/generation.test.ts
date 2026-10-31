@@ -4,6 +4,8 @@ import { isValidId } from '../src/core/ids';
 import { BLOCKING_PROPS } from '../src/core/props';
 import { Biome, TERRAIN_TYPES, type World } from '../src/core/types';
 import { generateWorld } from '../src/generation';
+import { vertexHeights, EDGE_FLOOR } from '../src/core/heightfield';
+import { SEA_LEVEL } from '../src/core/constants';
 import { makeWorld } from './helpers';
 
 const counts = (w: World): number[] => {
@@ -36,6 +38,22 @@ describe('G1 determinism', () => {
     const b = generateWorld({ seed: 's', size: 'small', terrain: 'plains' });
     expect(a.id).not.toBe(b.id);
     expect(isValidId(a.id)).toBe(true);
+  });
+});
+
+describe('world edge', () => {
+  it('holds a flat, submerged seabed along the border so the cut-away edge is clean', () => {
+    for (const terrain of TERRAIN_TYPES) {
+      const w = makeWorld('edge-floor', terrain);
+      const vs = w.size + 1;
+      const vh = vertexHeights(w.tiles);
+      for (let i = 0; i < vs; i++) {
+        for (const idx of [i, w.size * vs + i, i * vs, i * vs + w.size]) {
+          expect(vh[idx]).toBeLessThanOrEqual(EDGE_FLOOR + 1e-6);
+          expect(vh[idx]).toBeLessThan(SEA_LEVEL);
+        }
+      }
+    }
   });
 });
 

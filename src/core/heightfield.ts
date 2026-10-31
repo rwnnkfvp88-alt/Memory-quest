@@ -1,4 +1,4 @@
-import { RIVER_WATER_OFFSET, qToHeight } from './constants';
+import { RIVER_WATER_OFFSET, SEA_Q, qToHeight } from './constants';
 import { Biome, type TileGrid } from './types';
 
 /**
@@ -6,6 +6,9 @@ import { Biome, type TileGrid } from './types';
  * A vertex touching a river tile takes only the river bed height, which cuts a clean valley:
  * the bank tiles slope down to the water instead of hiding it.
  */
+/** Height of the sea floor at the very edge of the world (always below sea level). */
+export const EDGE_FLOOR = qToHeight(SEA_Q - 38);
+
 const cache = new WeakMap<TileGrid, Float32Array>();
 
 export function isWaterBiome(b: number): boolean {
@@ -37,7 +40,10 @@ export function vertexHeights(tiles: TileGrid): Float32Array {
           riverCount++;
         }
       }
-      out[vz * vs + vx] = riverCount > 0 ? riverSum / riverCount : sum / count;
+      const h = riverCount > 0 ? riverSum / riverCount : sum / count;
+      // The outermost ring is always sea: hold it at one flat depth so the cut-away edge reads as a clean slab.
+      const onEdge = vx === 0 || vz === 0 || vx === n || vz === n;
+      out[vz * vs + vx] = onEdge ? EDGE_FLOOR : h;
     }
   }
   cache.set(tiles, out);

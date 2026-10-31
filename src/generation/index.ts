@@ -53,7 +53,7 @@ export function generateWorld(input: GenerateInput, options: GenerateOptions = {
     tiles,
     objects,
     customized: false,
-    view: { x: focus.x, z: focus.z, zoom: 1, azimuth: Math.PI / 4 },
+    view: { x: focus.x, z: focus.z, zoom: 0.85, azimuth: Math.PI / 4 },
     extensions: {},
   };
 }

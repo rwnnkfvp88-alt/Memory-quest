@@ -47,7 +47,7 @@ export const BUILDING_DEFS: Record<BuildingTypeId, BuildingDef> = {
     height: 2.3,
     variants: 3,
     defaultColors: { wall: '#e9dcc0', roof: '#b24c32' },
-    smoke: { x: 0.45, y: 2.25, z: -0.3 },
+    smoke: { x: 0.45, y: 2.28, z: -0.3 },
   },
   tavern: {
     id: 'tavern',
@@ -57,7 +57,7 @@ export const BUILDING_DEFS: Record<BuildingTypeId, BuildingDef> = {
     height: 2.9,
     variants: 3,
     defaultColors: { wall: '#d9b48f', roof: '#5e4430' },
-    smoke: { x: -0.9, y: 2.85, z: 0.2 },
+    smoke: { x: -0.9, y: 2.95, z: 0.2 },
   },
   blacksmith: {
     id: 'blacksmith',
@@ -67,7 +67,7 @@ export const BUILDING_DEFS: Record<BuildingTypeId, BuildingDef> = {
     height: 2.2,
     variants: 2,
     defaultColors: { wall: '#aeb3b0', roof: '#46597f' },
-    smoke: { x: 0.95, y: 2.55, z: -0.35 },
+    smoke: { x: 0.95, y: 2.62, z: -0.35 },
   },
   windmill: {
     id: 'windmill',

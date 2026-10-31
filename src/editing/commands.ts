@@ -84,21 +84,41 @@ export function moveBuilding(world: World, id: ObjectId, x: number, z: number): 
   return { ok: true, world: withObjects(world, objects), id };
 }
 
-/** Rotate by quarter turns about the footprint centre so the building turns in place. */
+/**
+ * Rotate by quarter turns about the footprint centre. If the exact pivot doesn't fit (a neighbour
+ * or a slope in the way), the nearest anchor within one tile that does fit is used, so the building
+ * turns in place whenever it reasonably can.
+ */
 export function rotateBuilding(world: World, id: ObjectId, quarterTurns: number): EditResult {
   const b = getBuilding(world, id);
   if (!b) return refuse('not-found', 'That building no longer exists.');
   const next = (((b.rotation + quarterTurns) % 4) + 4) % 4 as 0 | 1 | 2 | 3;
   const before = footprintRect(b.type, b.rotation, b.x, b.z);
   const after = footprintRect(b.type, next, b.x, b.z);
-  const cx = before.x0 + before.w / 2;
-  const cz = before.z0 + before.d / 2;
-  const nx = Math.round(cx - after.w / 2);
-  const nz = Math.round(cz - after.d / 2);
-  const check = validateBuildingPlacement(world, b.type, next, nx, nz, id);
-  if (!check.ok) return refuse(check.reason, `Can't rotate here. ${check.message}`);
-  const objects = { ...world.objects, [id]: { ...b, rotation: next, x: nx, z: nz } };
-  return { ok: true, world: withObjects(world, objects), id };
+  const idealX = before.x0 + before.w / 2 - after.w / 2;
+  const idealZ = before.z0 + before.d / 2 - after.d / 2;
+  const baseX = Math.floor(idealX + 0.5);
+  const baseZ = Math.floor(idealZ + 0.5);
+  const candidates: Array<{ x: number; z: number; d: number }> = [];
+  for (let dz = -1; dz <= 1; dz++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const x = baseX + dx;
+      const z = baseZ + dz;
+      candidates.push({ x, z, d: Math.hypot(x - idealX, z - idealZ) });
+    }
+  }
+  candidates.sort((a, c) => a.d - c.d || a.z - c.z || a.x - c.x);
+
+  let firstFailure: string | null = null;
+  for (const c of candidates) {
+    const check = validateBuildingPlacement(world, b.type, next, c.x, c.z, id);
+    if (check.ok) {
+      const objects = { ...world.objects, [id]: { ...b, rotation: next, x: c.x, z: c.z } };
+      return { ok: true, world: withObjects(world, objects), id };
+    }
+    firstFailure ??= check.message;
+  }
+  return refuse('blocked', `Can't rotate here. ${firstFailure}`);
 }
 
 export function recolorBuilding(world: World, id: ObjectId, colors: Partial<BuildingColors>): EditResult {

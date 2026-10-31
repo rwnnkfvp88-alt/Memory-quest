@@ -95,6 +95,52 @@ describe('B2 rotate / move / recolor / remove keep ids stable', () => {
     expect(rotateBuilding(world, id, -1).ok).toBe(true);
   });
 
+  it('rotation nudges to the nearest anchor that fits instead of failing on a strict pivot', () => {
+    const w = makeWorld('hearthmoor');
+    let nudged = 0;
+    let tested = 0;
+    for (let k = 0; k < 60; k++) {
+      const spot = findSpot(w, 'blacksmith', 0, k * 7);
+      const placedB = placeBuilding(w, { type: 'blacksmith', ...spot, id: 'building_rotatetest01' });
+      if (!placedB.ok) continue;
+      let cur = placedB.world;
+      for (let turn = 0; turn < 4; turn++) {
+        const b = cur.objects['building_rotatetest01'] as BuildingObject;
+        const next = (b.rotation + 1) % 4;
+        const bf = footprintRect(b.type, b.rotation, b.x, b.z);
+        const af = footprintRect(b.type, next, b.x, b.z);
+        const ix = bf.x0 + bf.w / 2 - af.w / 2;
+        const iz = bf.z0 + bf.d / 2 - af.d / 2;
+        // Oracle: is ANY anchor within one tile of the ideal pivot valid?
+        let anyValid = false;
+        let exactValid = false;
+        for (let dz = -1; dz <= 1; dz++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const x = Math.floor(ix + 0.5) + dx;
+            const z = Math.floor(iz + 0.5) + dz;
+            if (validateBuildingPlacement(cur, b.type, next, x, z, b.id).ok) {
+              anyValid = true;
+              if (dx === 0 && dz === 0) exactValid = true;
+            }
+          }
+        }
+        const r = rotateBuilding(cur, b.id, 1);
+        tested++;
+        expect(r.ok, `spot ${spot.x},${spot.z} turn ${turn}`).toBe(anyValid);
+        if (r.ok) {
+          if (!exactValid) nudged++;
+          cur = r.world;
+          const after = cur.objects['building_rotatetest01'] as BuildingObject;
+          expect(after.id).toBe('building_rotatetest01');
+          expect(after.rotation).toBe(next);
+          expect(validateBuildingPlacement(cur, after.type, after.rotation, after.x, after.z, after.id).ok).toBe(true);
+        } else break;
+      }
+    }
+    expect(tested).toBeGreaterThan(100);
+    expect(nudged).toBeGreaterThan(0); // the nudge actually rescued some rotations
+  });
+
   it('moves a building and refuses invalid destinations', () => {
     const other = findSpot(world, 'tavern', 0, 40);
     const r = moveBuilding(world, id, other.x, other.z);
